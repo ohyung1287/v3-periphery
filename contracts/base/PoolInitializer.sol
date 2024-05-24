@@ -6,7 +6,7 @@ import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 
 import './PeripheryImmutableState.sol';
 import '../interfaces/IPoolInitializer.sol';
-
+import 'hardhat/console.sol';
 /// @title Creates and initializes V3 Pools
 abstract contract PoolInitializer is IPoolInitializer, PeripheryImmutableState {
     /// @inheritdoc IPoolInitializer
@@ -18,9 +18,10 @@ abstract contract PoolInitializer is IPoolInitializer, PeripheryImmutableState {
     ) external payable override returns (address pool) {
         require(token0 < token1);
         pool = IUniswapV3Factory(factory).getPool(token0, token1, fee);
-
         if (pool == address(0)) {
             pool = IUniswapV3Factory(factory).createPool(token0, token1, fee);
+            console.log("Factory address: %s", factory);
+            console.log("Created Pool address: %s", pool);
             IUniswapV3Pool(pool).initialize(sqrtPriceX96);
         } else {
             (uint160 sqrtPriceX96Existing, , , , , , ) = IUniswapV3Pool(pool).slot0();

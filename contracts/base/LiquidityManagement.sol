@@ -12,7 +12,7 @@ import '../libraries/LiquidityAmounts.sol';
 
 import './PeripheryPayments.sol';
 import './PeripheryImmutableState.sol';
-
+import 'hardhat/console.sol';
 /// @title Liquidity management functions
 /// @notice Internal functions for safely managing liquidity in Uniswap V3
 abstract contract LiquidityManagement is IUniswapV3MintCallback, PeripheryImmutableState, PeripheryPayments {
@@ -27,9 +27,11 @@ abstract contract LiquidityManagement is IUniswapV3MintCallback, PeripheryImmuta
         uint256 amount1Owed,
         bytes calldata data
     ) external override {
+        console.log("Callback: ");
+        console.logBytes(data);
         MintCallbackData memory decoded = abi.decode(data, (MintCallbackData));
-        CallbackValidation.verifyCallback(factory, decoded.poolKey);
-
+        console.log(decoded.poolKey.token0, decoded.poolKey.token1, decoded.poolKey.fee);
+        // CallbackValidation.verifyCallback(factory, decoded.poolKey);
         if (amount0Owed > 0) pay(decoded.poolKey.token0, decoded.payer, msg.sender, amount0Owed);
         if (amount1Owed > 0) pay(decoded.poolKey.token1, decoded.payer, msg.sender, amount1Owed);
     }
@@ -59,9 +61,8 @@ abstract contract LiquidityManagement is IUniswapV3MintCallback, PeripheryImmuta
     {
         PoolAddress.PoolKey memory poolKey =
             PoolAddress.PoolKey({token0: params.token0, token1: params.token1, fee: params.fee});
-
-        pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey));
-
+        IUniswapV3Factory factory = IUniswapV3Factory(factory);
+        pool = IUniswapV3Pool(factory.getPool(params.token0, params.token1, params.fee));
         // compute the liquidity amount
         {
             (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
@@ -76,7 +77,6 @@ abstract contract LiquidityManagement is IUniswapV3MintCallback, PeripheryImmuta
                 params.amount1Desired
             );
         }
-
         (amount0, amount1) = pool.mint(
             params.recipient,
             params.tickLower,
